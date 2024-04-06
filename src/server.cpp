@@ -57,8 +57,26 @@ int main(int argc, char **argv) {
     std::cerr << "Socket connection failed\n";
     return 1;
   }
+
+  char buffer[1024] = {0};
+  recv(client_fd, buffer, sizeof(buffer), 0);
+
+  std::cout << "Message from client: " << std::endl << buffer << std::endl;
+
+  std::string client_request(buffer);
+  std::string first_line = client_request.substr(0, client_request.find("\r\n"));
+  std::string client_path = first_line.substr(first_line.find(" ") + 1, first_line.rfind(" ") - first_line.find(" ") - 1);
+  std::cout << "Path: " << client_path << std::endl;
+
+  std::string response = "";
+  if (client_path == "/"){
+    response = "HTTP/1.1 200 OK\r\n\r\n";
+  }else{
+    response = "HTTP/1.1 404 NOT Found\r\n\r\n";
+  }
+
   
-  send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
+  send(client_fd, response.c_str(), response.size(), 0); 
   std::cerr << "Message sent\n";
   close(client_fd);
   close(server_fd);
