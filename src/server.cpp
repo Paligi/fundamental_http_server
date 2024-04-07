@@ -61,22 +61,44 @@ int main(int argc, char **argv) {
   char buffer[1024] = {0};
   recv(client_fd, buffer, sizeof(buffer), 0);
 
+  std::string_view buffer_content = buffer;
+
   std::cout << "Message from client: " << std::endl << buffer << std::endl;
 
-  std::string client_request(buffer);
-  std::string first_line = client_request.substr(0, client_request.find("\r\n"));
-  std::string client_path = first_line.substr(first_line.find(" ") + 1, first_line.rfind(" ") - first_line.find(" ") - 1);
-  std::cout << "Path: " << client_path << std::endl;
+  std::string response_data;
+  size_t path_pos = buffer_content.find("/");
+  // std::cout << path_pos << std::endl;
+  // std::cout << "buffer_content:" << buffer_content.at(path_pos) << std::endl;
 
-  std::string response = "";
-  if (client_path == "/"){
-    response = "HTTP/1.1 200 OK\r\n\r\n";
+  if (buffer_content.at(path_pos + 1) == ' ')
+  {
+    response_data = "HTTP/1.1 200 OK\r\n\r\n";
   }else{
-    response = "HTTP/1.1 404 NOT Found\r\n\r\n";
+    path_pos = buffer_content.find("/echo/");
+
+    if (path_pos == buffer_content.npos)
+    {
+      response_data = "HTTP/1.1 404 Not Found\r\n\r\n";
+    }
+    else
+    {
+      size_t protocol_version_pos = buffer_content.find("HTTP");
+      size_t echo_start_pos = path_pos + 6;
+      std::string_view substr = buffer_content.substr(echo_start_pos, protocol_version_pos - echo_start_pos - 1);
+      response_data = "HTTP/1.1 200 OK\r\n";
+      response_data.append("Content-Type: text/plain\r\nContent-Length: ");
+      response_data.append(std::to_string(substr.size()));
+      response_data.append("\r\n\r\n");
+      response_data.append(substr);
+    }
   }
 
+  std::cout << "Response data:" << response_data << std::endl;
+
   
-  send(client_fd, response.c_str(), response.size(), 0); 
+
+  
+  send(client_fd, response_data.c_str(), response_data.size(), 0); 
   std::cerr << "Message sent\n";
   close(client_fd);
   close(server_fd);
