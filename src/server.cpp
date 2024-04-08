@@ -43,7 +43,7 @@ void clientHandler(int connfd) {
         std::string messg = receive.substr(pos1, pos2-pos1);
         send_buffer += std::to_string(messg.size()) + "\r\n\r\n";
         send_buffer += messg + "\r\n";
-        
+
     } else {
         send_buffer = "HTTP/1.1 404 Not Found\r\n\r\n";
     } 
@@ -84,6 +84,7 @@ int setup(void) {
         std::cerr << "listen failed\n";
         return 1;
     }
+    std::cout << "listening for incoming requests\n";
     return server_fd;
 }
 
@@ -95,6 +96,7 @@ int main(int argc, char **argv) {
         if (connfd < 0) {
             continue;
         }
+        std::cout << "Client " << connfd << " connected\n";
         client_pool.emplace_back(clientHandler, connfd);
     }
     
