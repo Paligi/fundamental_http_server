@@ -65,46 +65,39 @@ int main(int argc, char **argv) {
 
   std::cout << "Message from client: " << std::endl << buffer << std::endl;
 
-  std::string response_data;
-  size_t path_pos = buffer_content.find("/");
-  
 
-  if (buffer_content.at(path_pos + 1) == ' ')
+  std::string request(buffer);
+  std::string first_line = request.substr(0, request.find("\r\n"));
+  std::string path = first_line.substr(first_line.find(" ") + 1, first_line.rfind(" ") - first_line.find(" ") - 1);
+  std::string response;
+  if (path == "/")
   {
-    response_data = "HTTP/1.1 200 OK\r\n\r\n";
-  }else{
-    path_pos = buffer_content.find("user-agent");
-    // std::cout<< "User_postion:" << path_pos << std::endl;
-
-    if (path_pos == buffer_content.npos)
-    {
-      response_data = "HTTP/1.1 404 Not Found\r\n\r\n";
+    // response string to the client
+    response = "HTTP/1.1 200 OK\r\n\r\n";
+  } else if (/*path starts with /echo/*/ path.find("/echo") == 0){
+    std::string echo = path.substr(path.find(" ") + 7, path.rfind(" ") - path.find(" ") - 1);
+    std::string len_str = std::to_string(echo.length()); // Convert len to string
+    response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + len_str + "\r\n\r\n" + echo + "\r\n\r\n";
+  
+  } else if (path.find("/user-agent") == 0) {
+    // find the line that starts with User-Agent:
+    std::string user_agent = "";
+    size_t pos = request.find("User-Agent: ");
+    if (pos != std::string::npos) {
+      size_t end = request.find("\r\n", pos);
+      user_agent = request.substr(pos + 12, end - pos - 12);
     }
-    else
-    {
-      size_t protocol_version_pos = buffer_content.rfind("User-Agent");
-      // std::cout<< "Curl_postion:" << protocol_version_pos << std::endl;
-      size_t echo_start_pos = path_pos + 12;
-      size_t echo_end_pos   = buffer_content.find("\n", echo_start_pos);
-      // std::cout<< "End_postion:" << echo_end_pos << std::endl;
-      std::string_view substr = buffer_content.substr(echo_start_pos, echo_end_pos - echo_start_pos);
+    std::string len_str = std::to_string(user_agent.length()); // Convert len to string
 
-      std::cout<< "SUBSTR:" << substr << substr.length() <<std::endl;
-      response_data = "HTTP/1.1 200 OK\r\n";
-      response_data.append("Content-Type: text/plain\r\nContent-Length: ");
-      response_data.append(std::to_string(substr.length()));
-      response_data.append("\r\n\r\n");
-      response_data.append(substr);
-    }
+    response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + len_str + "\r\n\r\n" + user_agent + "\r\n\r\n";
+  }
+  else {
+    // response string to the client
+    response = "HTTP/1.1 404 Not Found\r\n\r\n";
   }
 
-  std::cout << "Response data:" << response_data << std::endl;
-
-  
-
-  
-  send(client_fd, response_data.c_str(), response_data.size(), 0); 
-  std::cerr << "Message sent\n";
+  // send(client_fd, response_data.c_str(), response_data.size(), 0); 
+  send(client_fd, response.c_str(), response.size(), 0);
   close(client_fd);
   close(server_fd);
 
