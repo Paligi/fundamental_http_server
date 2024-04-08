@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   {
     response_data = "HTTP/1.1 200 OK\r\n\r\n";
   }else{
-    path_pos = buffer_content.find("User-Agent");
+    path_pos = buffer_content.find("user-agent");
     // std::cout<< "User_postion:" << path_pos << std::endl;
 
     if (path_pos == buffer_content.npos)
