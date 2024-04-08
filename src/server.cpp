@@ -67,14 +67,14 @@ int main(int argc, char **argv) {
 
   std::string response_data;
   size_t path_pos = buffer_content.find("/");
-  // std::cout << path_pos << std::endl;
-  // std::cout << "buffer_content:" << buffer_content.at(path_pos) << std::endl;
+  
 
   if (buffer_content.at(path_pos + 1) == ' ')
   {
     response_data = "HTTP/1.1 200 OK\r\n\r\n";
   }else{
-    path_pos = buffer_content.find("/echo/");
+    path_pos = buffer_content.find("User-Agent");
+    // std::cout<< "User_postion:" << path_pos << std::endl;
 
     if (path_pos == buffer_content.npos)
     {
@@ -82,12 +82,17 @@ int main(int argc, char **argv) {
     }
     else
     {
-      size_t protocol_version_pos = buffer_content.find("HTTP");
-      size_t echo_start_pos = path_pos + 6;
-      std::string_view substr = buffer_content.substr(echo_start_pos, protocol_version_pos - echo_start_pos - 1);
+      size_t protocol_version_pos = buffer_content.rfind("User-Agent");
+      // std::cout<< "Curl_postion:" << protocol_version_pos << std::endl;
+      size_t echo_start_pos = path_pos + 12;
+      size_t echo_end_pos   = buffer_content.find("\n", echo_start_pos);
+      // std::cout<< "End_postion:" << echo_end_pos << std::endl;
+      std::string_view substr = buffer_content.substr(echo_start_pos, echo_end_pos - echo_start_pos);
+
+      std::cout<< "SUBSTR:" << substr << substr.length() <<std::endl;
       response_data = "HTTP/1.1 200 OK\r\n";
       response_data.append("Content-Type: text/plain\r\nContent-Length: ");
-      response_data.append(std::to_string(substr.size()));
+      response_data.append(std::to_string(substr.length()));
       response_data.append("\r\n\r\n");
       response_data.append(substr);
     }
