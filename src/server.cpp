@@ -7,99 +7,101 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <thread>
+#include <vector>
+#define BUFF_SIZE 1024
+
+void clientHandler(int connfd) {
+    if (connfd < 0) {
+        std::cerr << "Error with connection.\n";
+        return;
+    }
+    
+    char receive_buffer[BUFF_SIZE];
+    if (read(connfd, receive_buffer, sizeof(receive_buffer)) < 0) {
+        std::cerr << "Failed to receive\n";
+        close(connfd);
+        return;
+    }
+    std::string receive(receive_buffer);
+    std::string send_buffer;
+    
+    if (receive.find("/ ") != std::string::npos) {
+        send_buffer = "HTTP/1.1 200 OK\r\n\r\n";
+
+    } else if (receive.find("/echo/") != std::string::npos) {
+        send_buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ";
+        std::string::size_type pos1 = receive.find("echo") + 5;
+        std::string::size_type pos2 = receive.find(" ", pos1);
+        send_buffer += std::to_string(pos2-pos1) + "\r\n\r\n";
+        send_buffer += receive.substr(pos1, pos2-pos1) + "\r\n";
+
+    } else if (receive.find("/user-agent") != std::string::npos) {
+        send_buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ";
+        std::string::size_type pos1 = receive.rfind("User-Agent") + 12;
+        std::string::size_type pos2 = receive.find("\r\n", pos1);
+        std::string messg = receive.substr(pos1, pos2-pos1);
+        send_buffer += std::to_string(messg.size()) + "\r\n\r\n";
+        send_buffer += messg + "\r\n";
+        
+    } else {
+        send_buffer = "HTTP/1.1 404 Not Found\r\n\r\n";
+    } 
+    if (write(connfd, send_buffer.c_str(), send_buffer.size()) < 0) {
+        return;
+    }
+    
+    close(connfd);
+    return;
+}
+
+int setup(void) {
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd < 0) {
+        std::cerr << "Failed to create server socket\n";
+        return 1;
+    }
+
+    //ensures that we don't run into 'Address already in use' errors
+    int reuse = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
+        std::cerr << "setsockopt failed\n";
+        return 1;
+    }
+
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(4221);
+
+    if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
+        std::cerr << "Failed to bind to port 4221\n";
+        return 1;
+    }
+
+    int connection_backlog = 5;
+    if (listen(server_fd, connection_backlog) != 0) {
+        std::cerr << "listen failed\n";
+        return 1;
+    }
+    return server_fd;
+}
 
 int main(int argc, char **argv) {
-  // You can use print statements as follows for debugging, they'll be visible when running tests.
-  std::cout << "Logs from your program will appear here!\n";
-
-  // Uncomment this block to pass the first stage
-  
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd < 0) {
-   std::cerr << "Failed to create server socket\n";
-   return 1;
-  }
-  
-  // Since the tester restarts your program quite often, setting REUSE_PORT
-  // ensures that we don't run into 'Address already in use' errors
-  int reuse = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
-    std::cerr << "setsockopt failed\n";
-    return 1;
-  }
-  
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(4221);
-  
-  if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
-    std::cerr << "Failed to bind to port 4221\n";
-    return 1;
-  }
-  
-  int connection_backlog = 5;
-  if (listen(server_fd, connection_backlog) != 0) {
-    std::cerr << "listen failed\n";
-    return 1;
-  }
-  
-  struct sockaddr_in client_addr;
-  int client_addr_len = sizeof(client_addr);
-  
-  std::cout << "Waiting for a client to connect...\n";
-  
-  // accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-  int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-  std::cout << "Client connected\n";
-  
-  if (client_fd < 0){
-    std::cerr << "Socket connection failed\n";
-    return 1;
-  }
-
-  char buffer[1024] = {0};
-  recv(client_fd, buffer, sizeof(buffer), 0);
-
-  std::string_view buffer_content = buffer;
-
-  std::cout << "Message from client: " << std::endl << buffer << std::endl;
-
-
-  std::string request(buffer);
-  std::string first_line = request.substr(0, request.find("\r\n"));
-  std::string path = first_line.substr(first_line.find(" ") + 1, first_line.rfind(" ") - first_line.find(" ") - 1);
-  std::string response;
-  if (path == "/")
-  {
-    // response string to the client
-    response = "HTTP/1.1 200 OK\r\n\r\n";
-  } else if (/*path starts with /echo/*/ path.find("/echo") == 0){
-    std::string echo = path.substr(path.find(" ") + 7, path.rfind(" ") - path.find(" ") - 1);
-    std::string len_str = std::to_string(echo.length()); // Convert len to string
-    response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + len_str + "\r\n\r\n" + echo + "\r\n\r\n";
-  
-  } else if (path.find("/user-agent") == 0) {
-    // find the line that starts with User-Agent:
-    std::string user_agent = "";
-    size_t pos = request.find("User-Agent: ");
-    if (pos != std::string::npos) {
-      size_t end = request.find("\r\n", pos);
-      user_agent = request.substr(pos + 12, end - pos - 12);
+    int server_fd = setup();
+    std::vector<std::thread> client_pool;
+    while (true) {
+        int connfd = accept(server_fd, NULL, NULL);
+        if (connfd < 0) {
+            continue;
+        }
+        client_pool.emplace_back(clientHandler, connfd);
     }
-    std::string len_str = std::to_string(user_agent.length()); // Convert len to string
+    
+    for (auto &x : client_pool) {
+        x.join();
+    }
+    close(server_fd);
 
-    response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + len_str + "\r\n\r\n" + user_agent + "\r\n\r\n";
-  }
-  else {
-    // response string to the client
-    response = "HTTP/1.1 404 Not Found\r\n\r\n";
-  }
-
-  // send(client_fd, response_data.c_str(), response_data.size(), 0); 
-  send(client_fd, response.c_str(), response.size(), 0);
-  close(client_fd);
-  close(server_fd);
-
-  return 0;
+    return 0;
 }
