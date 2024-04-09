@@ -65,7 +65,7 @@ void clientHandler(int connfd, std::string file_path) {
             }
             send_buffer += std::to_string(file_buffer.size()-1) + "\r\n\r\n" + file_buffer + "\r\n";
         }
-        
+
     } else if (receive.find("POST") != std::string::npos) {
         std::cout << "Passed info:\n" << receive << std::endl;
         std::string::size_type pos1 = receive.find("files") + 6;
@@ -119,6 +119,12 @@ int setup(void) {
 }
 
 int main(int argc, char **argv) {
+    std::string file_path;
+    if (argc == 3 && strcmp(argv[1], "--directory") == 0) {
+        file_path = argv[2];
+    }
+
+    //Setup the server connection, and get server file description id
     int server_fd = setup();
     std::vector<std::thread> client_pool;
     while (true) {
@@ -127,8 +133,7 @@ int main(int argc, char **argv) {
             continue;
         }
         std::cout << "Client " << connfd << " connected\n";
-        client_pool.emplace_back(clientHandler, connfd);
-    }
+        client_pool.emplace_back(clientHandler, connfd, file_path);
     
     for (auto &x : client_pool) {
         x.join();
