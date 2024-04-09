@@ -123,22 +123,26 @@ int main(int argc, char **argv) {
     if (argc == 3 && strcmp(argv[1], "--directory") == 0) {
         file_path = argv[2];
     }
-
+    
     //Setup the server connection, and get server file description id
     int server_fd = setup();
+    if (server_fd < 0) {
+        return -1;
+    }
+    //Create a vector of threads to handle more than one client at the same time
     std::vector<std::thread> client_pool;
     while (true) {
         int connfd = accept(server_fd, NULL, NULL);
         if (connfd < 0) {
             continue;
         }
-        std::cout << "Client " << connfd << " connected\n";
         client_pool.emplace_back(clientHandler, connfd, file_path);
+    }
     
+    //Wait for the client requests to be done, then close the server connection
     for (auto &x : client_pool) {
         x.join();
     }
     close(server_fd);
-
     return 0;
 }
