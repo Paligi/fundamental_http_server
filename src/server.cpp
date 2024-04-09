@@ -26,7 +26,7 @@ void clientHandler(int connfd, std::string file_path) {
     }
     std::string receive(receive_buffer);
     std::string send_buffer;
-    
+
     if (receive.find("/ ") != std::string::npos) {
         send_buffer = "HTTP/1.1 200 OK\r\n\r\n";
 
@@ -45,7 +45,7 @@ void clientHandler(int connfd, std::string file_path) {
         send_buffer += std::to_string(messg.size()) + "\r\n\r\n";
         send_buffer += messg + "\r\n";
 
-    } else if (receive.find("files")!= std::string::npos ) {
+    } else if (receive.substr(0,3) == "GET" && receive.find("files") != std::string::npos) {
         std::string::size_type pos1 = receive.find("files") + 6;
         std::string::size_type pos2 = receive.find(" ", pos1);
         std::string file_name = receive.substr(pos1, pos2-pos1);
@@ -65,15 +65,17 @@ void clientHandler(int connfd, std::string file_path) {
             }
             send_buffer += std::to_string(file_buffer.size()-1) + "\r\n\r\n" + file_buffer + "\r\n";
         }
-
-    } else if (receive.find("POST") != std::string::npos) {
-        std::cout << "Passed info:\n" << receive << std::endl;
+        file.close();
+        
+    } else if (receive.substr(0,4) == "POST") {
         std::string::size_type pos1 = receive.find("files") + 6;
         std::string::size_type pos2 = receive.find(" ", pos1);
         std::string file_name = receive.substr(pos1, pos2-pos1);
         std::ofstream new_file(file_path+"/"+file_name);
+        std::string buff = receive.substr(receive.find_last_of('\n')+1);
+        new_file << buff.c_str();
+        new_file.close();
         send_buffer = "HTTP/1.1 201 Created\r\n\r\n";
-    
     } else {
         send_buffer = "HTTP/1.1 404 Not Found\r\n\r\n";
     } 
@@ -85,18 +87,22 @@ void clientHandler(int connfd, std::string file_path) {
     return;
 }
 
+//Runs all necessary setup for the server connection, and returns the server file descriptor for use later
 int setup(void) {
+    //Creates the endpoint for communication between client and server,
+    //and returns the file descriptor for that endpoint. If the file
+    //descriptor is negative, an error occured
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         std::cerr << "Failed to create server socket\n";
-        return 1;
+        return -1;
     }
 
     //ensures that we don't run into 'Address already in use' errors
     int reuse = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
         std::cerr << "setsockopt failed\n";
-        return 1;
+        return -1;
     }
 
     struct sockaddr_in server_addr;
@@ -106,15 +112,14 @@ int setup(void) {
 
     if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
         std::cerr << "Failed to bind to port 4221\n";
-        return 1;
+        return -1;
     }
 
     int connection_backlog = 5;
     if (listen(server_fd, connection_backlog) != 0) {
         std::cerr << "listen failed\n";
-        return 1;
+        return -1;
     }
-    std::cout << "listening for incoming requests\n";
     return server_fd;
 }
 
@@ -129,6 +134,7 @@ int main(int argc, char **argv) {
     if (server_fd < 0) {
         return -1;
     }
+
     //Create a vector of threads to handle more than one client at the same time
     std::vector<std::thread> client_pool;
     while (true) {
@@ -144,5 +150,6 @@ int main(int argc, char **argv) {
         x.join();
     }
     close(server_fd);
+
     return 0;
 }
