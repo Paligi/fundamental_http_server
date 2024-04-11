@@ -185,8 +185,8 @@
 	"kind" : "cmakeFiles",
 	"paths" : 
 	{
-		"build" : "/Users/cyy1/codecrafters-http-server-cpp/build",
-		"source" : "/Users/cyy1/codecrafters-http-server-cpp"
+		"build" : "/Users/cyy1/fundamental_http_server/build",
+		"source" : "/Users/cyy1/fundamental_http_server"
 	},
 	"version" : 
 	{

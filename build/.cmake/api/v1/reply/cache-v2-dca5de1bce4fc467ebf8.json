@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/Users/cyy1/codecrafters-http-server-cpp/build"
+			"value" : "/Users/cyy1/fundamental_http_server/build"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -491,7 +491,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/Users/cyy1/codecrafters-http-server-cpp/build/CMakeFiles/pkgRedirects"
+			"value" : "/Users/cyy1/fundamental_http_server/build/CMakeFiles/pkgRedirects"
 		},
 		{
 			"name" : "CMAKE_GENERATOR",
@@ -563,7 +563,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/Users/cyy1/codecrafters-http-server-cpp"
+			"value" : "/Users/cyy1/fundamental_http_server"
 		},
 		{
 			"name" : "CMAKE_INSTALL_NAME_TOOL",
@@ -1167,7 +1167,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/Users/cyy1/codecrafters-http-server-cpp/build"
+			"value" : "/Users/cyy1/fundamental_http_server/build"
 		},
 		{
 			"name" : "http-server-starter-cpp_IS_TOP_LEVEL",
@@ -1191,7 +1191,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/Users/cyy1/codecrafters-http-server-cpp"
+			"value" : "/Users/cyy1/fundamental_http_server"
 		}
 	],
 	"kind" : "cache",
