@@ -46,13 +46,18 @@ void clientHandler(int connfd, std::string file_path) {
         send_buffer += messg + "\r\n";
 
     } else if (receive.substr(0,3) == "GET" && receive.find("files") != std::string::npos) {
+        std::cout<< "GETTTTTT FILES"<<std::endl;
+
         std::string::size_type pos1 = receive.find("files") + 6;
         std::string::size_type pos2 = receive.find(" ", pos1);
         std::string file_name = receive.substr(pos1, pos2-pos1);
+        std::cout<< "FILE NAME:" << file_name << std::endl;
         std::ifstream file(file_path + "/" + file_name);
         if (!file.is_open()) {
+            std::cout<< "not open" << std::endl;
             send_buffer = "HTTP/1.1 404 Not Found\r\n\r\n";
         } else {
+            std::cout<< " open" << std::endl;
             send_buffer = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ";
             std::string file_buffer;
             char char_buffer;
@@ -68,6 +73,8 @@ void clientHandler(int connfd, std::string file_path) {
         file.close();
         
     } else if (receive.substr(0,4) == "POST") {
+        std::cout<< "POSTTTT FILES"<<std::endl;
+
         std::string::size_type pos1 = receive.find("files") + 6;
         std::string::size_type pos2 = receive.find(" ", pos1);
         std::string file_name = receive.substr(pos1, pos2-pos1);
